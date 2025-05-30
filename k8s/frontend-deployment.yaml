@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  replicas: 1 # Puedes aumentar esto para alta disponibilidad
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend-nginx
+          image: your-dockerhub-username/mern-frontend:latest # ¡IMPORTANTE! Reemplaza con el nombre de tu imagen
+          ports:
+            - containerPort: 80 # Nginx escucha en el puerto 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf # Monta el configmap como un archivo
+              subPath: nginx.conf # Especifica la clave del ConfigMap que contiene el contenido
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config # Referencia el ConfigMap creado arriba
+---
+# k8s/frontend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80 # Puerto del servicio
+      targetPort: 80 # Puerto del contenedor Nginx
+  type: ClusterIP # Servicio interno, será expuesto al exterior por el Ingress

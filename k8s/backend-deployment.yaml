@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  labels:
+    app: backend
+spec:
+  replicas: 1 # Puedes aumentar esto para alta disponibilidad
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: your-dockerhub-username/mern-backend:latest # ¡IMPORTANTE! Reemplaza con el nombre de tu imagen
+          ports:
+            - containerPort: 4000 # Tu backend escucha en el puerto 4000
+          envFrom:
+            - configMapRef:
+                name: backend-config # Inyecta las variables del ConfigMap
+---
+# k8s/backend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service # Este nombre (backend-service) será usado por Nginx para redirigir las solicitudes /api
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 4000 # Puerto del servicio
+      targetPort: 4000 # Puerto del contenedor
+  type: ClusterIP # Servicio interno del clúster

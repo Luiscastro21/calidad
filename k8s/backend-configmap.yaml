@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  labels:
+    app: backend
+data:
+  # Esta MONGO_URI se conecta al servicio de MongoDB usando su nombre de servicio de Kubernetes (tasksdb-service)
+  MONGO_URI: mongodb://tasksdb-service:27017/mern_tasks # 'mern_tasks' es un nombre de base de datos sugerido
+  PORT: "4000" # Tu backend escucha en el puerto 4000
+  # Añade aquí otras variables de entorno de tu .env.example que necesite el backend:
+  # JWT_SECRET: "tu_secreto_jwt_seguro"
+  # CORS_ORIGIN: "http://localhost" # Esto debe ser la URL de tu frontend en producción

@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mern-ingress
+  annotations:
+    # Si usas Nginx Ingress Controller, puedes descomentar la siguiente línea:
+    # kubernetes.io/ingress.class: nginx
+    # Otros Ingress Controllers pueden requerir anotaciones diferentes.
+    nginx.ingress.kubernetes.io/rewrite-target: /$1 # Ejemplo: Si tu app React espera rutas en la raíz
+spec:
+  rules:
+    - http:
+        paths:
+          - path: / # Para la ruta raíz, sirve el frontend
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service # Conecta al servicio del frontend
+                port:
+                  number: 80
+          # Nota: No necesitamos una regla separada para /api aquí porque Nginx (en el frontend)
+          # ya está configurado para proxy /api al backend-service. Si quisieras
+          # que el Ingress envíe directamente /api al backend, añadirías otra path aquí.

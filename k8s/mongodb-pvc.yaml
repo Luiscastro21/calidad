@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  labels:
+    app: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce # Permite que el volumen sea montado en modo lectura/escritura por un solo nodo.
+  resources:
+    requests:
+      storage: 1Gi # Solicita 1 Gigabyte de almacenamiento. Ajusta esto según tus necesidades.
+---
+# k8s/mongodb-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  labels:
+    app: mongodb
+spec:
+  replicas: 1 # Una réplica para una instancia única de MongoDB
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:latest # Imagen oficial de MongoDB
+          ports:
+            - containerPort: 27017 # Puerto por defecto de MongoDB
+          env:
+            # Puedes añadir variables de entorno para autenticación si las necesitas en MongoDB
+            # - name: MONGO_INITDB_ROOT_USERNAME
+            #   value: root
+            # - name: MONGO_INITDB_ROOT_PASSWORD
+            #   value: example
+          volumeMounts:
+            - name: mongodb-storage
+              mountPath: /data/db # Ruta por defecto donde MongoDB almacena sus datos
+      volumes:
+        - name: mongodb-storage
+          persistentVolumeClaim:
+            claimName: mongodb-pvc # Referencia el PVC que creamos arriba
+---
+# k8s/mongodb-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: tasksdb-service # Este nombre (tasksdb-service) será usado por el backend para conectarse a MongoDB
+  labels:
+    app: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017 # Puerto del servicio
+      targetPort: 27017 # Puerto del contenedor
+  type: ClusterIP # Servicio interno del clúster, no expuesto directamente al exterior
+  

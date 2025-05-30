@@ -1,0 +1,64 @@
+version: '3.8' # La versión del formato de Docker Compose que estamos usando.
+
+# La sección 'services' define los contenedores individuales que componen tu aplicación.
+services:
+  # 1. Servicio de la Base de Datos (MongoDB)
+  tasksdb:
+    image: mongo # Usamos la imagen oficial de MongoDB de Docker Hub.
+    container_name: tasksdb # Un nombre amigable para el contenedor de MongoDB.
+    restart: always # Asegura que el contenedor se reinicie si falla o si Docker se reinicia.
+    ports:
+      - "27017:27017" # Mapea el puerto 27017 de tu MÁQUINA LOCAL al puerto 27017 del CONTENEDOR.
+                      # Esto es útil si quieres conectarte a MongoDB desde tu máquina (ej. con MongoDB Compass).
+    volumes:
+      - mongodb_data:/data/db # Esto es CRUCIAL para la PERSISTENCIA de los datos.
+                               # 'mongodb_data' es un "volumen nombrado" que Docker gestionará.
+                               # Lo monta en '/data/db' dentro del contenedor de MongoDB,
+                               # asegurando que tus datos no se borren cuando el contenedor se detenga/elimine.
+
+  # 2. Servicio del Backend (Node.js/Express API)
+  backend:
+    build: # Instruye a Docker Compose que construya la imagen para este servicio.
+      context: . # El "contexto de construcción" es el directorio desde donde Docker copia los archivos.
+                 # '.' significa la raíz de tu proyecto (mern-crud-auth/).
+      dockerfile: Dockerfile.backend # Indica el nombre del Dockerfile que debe usar para construir la imagen.
+                                     # Docker lo buscará en el 'contexto'.
+    container_name: mern-backend # Nombre para el contenedor del backend.
+    restart: always
+    ports:
+      - "4000:4000" # Mapea el puerto 4000 de tu MÁQUINA LOCAL al puerto 4000 del CONTENEDOR.
+                    # Así, tu frontend y tú podréis acceder al backend a través de http://localhost:4000 (o el nombre del servicio).
+    depends_on:
+      - tasksdb # Asegura que el servicio 'tasksdb' (MongoDB) se inicie y esté listo antes de que 'backend' intente iniciar.
+    environment:
+      # Pasa variables de entorno directamente al contenedor del backend.
+      # Tu código de Node.js las leerá (ej. process.env.MONGO_URI).
+      # MONGO_URI: La cadena de conexión a tu base de datos.
+      # ¡IMPORTANTE! 'tasksdb' es el nombre del servicio de MongoDB dentro de la red de Docker Compose.
+      # Los servicios en Docker Compose pueden comunicarse entre sí por sus nombres de servicio.
+      MONGO_URI: mongodb://tasksdb:27017/merntasksdb
+      PORT: 4000 # El puerto en el que tu backend escucha.
+      # MUY IMPORTANTE: Cambia 'tu_secreto_super_seguro_para_jwt_en_produccion' por una cadena
+      # larga, aleatoria y compleja. Este es el secreto para firmar tus JWTs.
+      JWT_SECRET: tu_secreto_super_seguro_para_jwt_en_produccion
+
+  # 3. Servicio del Frontend (React/Vite servido por Nginx)
+  frontend:
+    build: # Instruye a Docker Compose que construya la imagen para este servicio.
+      context: ./client # El contexto de construcción para el frontend es la carpeta 'client/'.
+                        # Docker solo trabajará con los archivos dentro de 'client/' para construir esta imagen.
+      dockerfile: Dockerfile.frontend # Indica el nombre del Dockerfile para el frontend, dentro del 'contexto'.
+    container_name: mern-frontend # Nombre para el contenedor del frontend.
+    restart: always
+    ports:
+      - "80:80" # Mapea el puerto 80 de tu MÁQUINA LOCAL (el puerto HTTP estándar, http://localhost/)
+                # al puerto 80 del CONTENEDOR (donde Nginx está escuchando).
+    depends_on:
+      - backend # Asegura que el servicio 'backend' se inicie antes de que 'frontend' lo haga.
+                # Esto es importante porque Nginx en el frontend hace proxy a tu backend.
+
+# Sección para definir volúmenes nombrados.
+# Estos volúmenes persisten los datos fuera de los contenedores.
+volumes:
+  mongodb_data: # Define el volumen llamado 'mongodb_data' que usamos para MongoDB.docker-compose down
+
